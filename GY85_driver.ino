@@ -1,7 +1,7 @@
 /*
  Name:		Test_DC_motor.ino
  Created:	7/22/2016 8:56:52 PM
- Author:	Chaoyang Liu
+ Author:	Xiao Ming
 */
 #include "imu.h"
 #include "command.h"

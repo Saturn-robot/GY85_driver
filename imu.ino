@@ -1,5 +1,4 @@
-
-    #include <Wire.h>
+#include <Wire.h>
 #include <ADXL345.h>  // ADXL345 Accelerometer Library
 #include <HMC5883L.h> // HMC5883L Magnetometer Library
 #include <ITG3200.h>
@@ -79,13 +78,10 @@ unsigned long time, looptime;
       gx_rate = (gx) / 14.375;
       gy_rate = (gy) / 14.375;
       gz_rate = (gz) / 14.375;
- 
-  
+      
       data.gx = gx_rate;
       data.gy = gy_rate;
       data.gz = gz_rate;
-  
-  
   
       data.mx = scaled.XAxis;
       data.my = scaled.YAxis;
