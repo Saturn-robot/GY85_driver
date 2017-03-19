@@ -13,7 +13,6 @@ int ix, iy, iz;
 float anglegx=0.0, anglegy=0.0, anglegz=0.0;
 int ax,ay,az;
 int rawX, rawY, rawZ;
-float X, Y, Z;
 float rollrad, pitchrad;
 float rolldeg, pitchdeg;
 int error = 0;
@@ -41,16 +40,12 @@ imuData readIMU()
 {
   imuData_s data;
   time = millis();
+
+  // ACCEL
   acc.readAccel(&ax, &ay, &az); //read the accelerometer values and store them in variables  x,y,z
-
-  X = ax/256.00; // used for angle calculations
-  Y = ay/256.00; // used for angle calculations
-  Z = az/256.00; // used for angle calculations
-
-  data.ax = X;
-  data.ay = Y;
-  data.az = Z;
-
+  data.ax = ax * 0.0039;
+  data.ay = ay * 0.0039;
+  data.az = az * 0.0039;
 
   //GYRO
   rollrad = atan(Y/sqrt(X*X+Z*Z));  // calculated angle in radians

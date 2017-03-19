@@ -1,111 +1,128 @@
+[![Project Status: WIP - Initial development is in progress, but there has not yet been a stable, usable release suitable for the public.](http://www.repostatus.org/badges/latest/wip.svg)](http://www.repostatus.org/#wip)
+
 # 概述
 
-GY85是imu的一种型号，这里我们用一个GY85驱动程序读取imu三个传感器的信息，用值返回。如下所示：
+这是一个针对惯性测量模组（IMU）的Arduino驱动代码，目前只支持GY85。惯性测量模组是一种用于测量和报告设备速度、方向和重力的电子设备，它能将加速度计和陀螺仪，甚至是磁场强度计等传感器的数据进行综合。GY85在国内是一个很常用的惯性测量模组，用途很广范，主要用于无人机、机器人等。我们主要将其用在轮式机器人上，用于提供机器人的速度和位姿等信息。
+
+# GY85简介
+
+## 组成
+
+GY85包括三个微控制器，包括三轴加速度计、三轴陀螺仪、三轴电子罗盘，分别用于测量加速度、方向以及磁感应强度。其中X轴、Y轴是水平方向的，Z轴是垂直方向的。
+
+![gy85-b](http://img.dxcdn.com/productimages/sku_148436_1_small.jpg)
+
+note:图片来自<http://www.dx.com/>
+
+## 关于roll、pitch、yaw
+
+在使用GY85之前，我们需要学习一些基本知识。飞行器在飞行时有三个自由度，分别是roll、pitch、yaw，如果翻译成中文的话，我们可以分别叫做横滚、俯仰、航向。
+
+![axes](https://upload.wikimedia.org/wikipedia/commons/thumb/5/54/Flight_dynamics_with_text.png/200px-Flight_dynamics_with_text.png)
+
+note:图片来自维基百科:<https://en.wikipedia.org/wiki/Aircraft_principal_axes>。
+
+pitch是围绕X轴旋转，也叫做俯仰角;yaw是围绕Y轴旋转，也叫偏航角;roll是围绕Z轴旋转，也叫翻滚角。
+
+![roll](http://p1.bpimg.com/567571/d450d5fb4a092f72.gif)
+
+roll旋转
+
+![pitch](http://p1.bqimg.com/567571/a92926dde729cecf.gif)
+
+pitch旋转
+
+![yaw](http://p1.bpimg.com/567571/a1b95614beeb9669.gif)
+
+yaw旋转
+
+上述图片来自互联网，关于飞机旋转方式的进一步信息请查阅相关资料。
+
+## 加速度计(ADXL345)
+
+加速度计是一个用于测量固有加速度(Proper acceleration)，即物理加速度的设备，固有加速度不同于我们所熟知的坐标系加速度(速度的变化率)。例如加速度在静止时测得的重力加速度大约为g，即9.81m/s^2，而当其以自由落体运动时测得的加速度则约等于0。详情请参考维基百科:*[Accelerometer](http://en.wikipedia.org/wiki/Accelerometer)*。
+
+GY85所使用的加速度计ADXL345是一个模拟设备，它可以测量三个方向的加速度（x、y、z），具有13位的分辨率，测量范围达±16g。数字输出数据为16位二进制补码格式,可通过SPI(3线或4线)或I2C数字接口访问。ADXL345为驱动中断提供两个输出引脚:INT1和INT2，支持SINGLE_TAP、DOUBLE_TAP等特性，因此可以采用中断的方式来采集数据。
+
+**NOTE:** 关于ADXL345的详细参数和信息请参考其[数据手册](http://www.analog.com/media/cn/technical-documentation/data-sheets/ADXL345_cn.pdf)
+尽管ADXL345具有很高的精度，但是我们不可能每次都计算出精确的数据并将其存到芯片中。最常用的方式是多次采样取平均值。
+
+该芯片通常返回的是10位分辨率的数据，为了便于使用，我们需要做一些简单的处理，并将其单位转化为G。
+
+				测量值(单位:G) = 采样值 × (测量范围/(2^分辨率))
+
+公式中测量范围和分辨率取决于芯片的配置。ADXL345支持的测量范围有±2g/±4g/±8g/±16g。一般分辨率可以设置为10或者13位。采样值就是指芯片直接采集到的数据。如果ADXL345使用的是默认设置的话，那么分辨率为10位精度，测量范围为±2g(因此公式中应使用4)，因此根据上述公式可得：
+
+			测量值(单位:G) = 采样值 × (4/2^10) = 采样值 × (1/256) = 采样值 × 0.0039
+
+必须对每个方向的数据都做进行上面的处理，最终的测量值的范围在±1之间。
 
 ```
-switch (cmd) {
-		case READ_IMU:
-			imu_data = readIMU();
-			Serial.print(imu_data.ax);
-			Serial.print(F(" "));
-			Serial.print(imu_data.ay);
-			Serial.print(F(" "));
-      Serial.print(imu_data.az);
-      Serial.print(F(" "));
-      Serial.print(imu_data.gx);
-      Serial.print(F(" "));
-      Serial.print(imu_data.gy);
-      Serial.print(F(" "));
-      Serial.print(imu_data.gz);
-      Serial.print(F(" "));
-      Serial.print(imu_data.mx);
-      Serial.print(F(" "));
-      Serial.print(imu_data.my);
-      Serial.print(F(" "));
-      Serial.print(imu_data.mz);
-      Serial.print(F(" "));
-      Serial.print(imu_data.roll);
-      Serial.print(F(" "));
-      Serial.print(imu_data.pitch);
-      Serial.print(F(" "));
-      Serial.println(imu_data.uh);
-		  break;
-```
-这段代码中使用了“imu_data = readIMU();”这条语句。readIMU（）的返回值是结构体：
-```
-typedef struct imuData_s
-    {
-      float ax = -999;
-      float ay = -999;
-      float az = -999;
-      float gx = -999;
-      float gy = -999;
-      float gz = -999;
-      float mx = -999;
-      float my = -999;
-      float mz = -999;
-      float roll = -999;
-      float pitch = -999;
-      float uh = -999;
-    } imuData;
+xg = valX * 0.0039;
+yg = valY * 0.0039;
+zg = valZ * 0.0039;
 ```
 
-结构体中有9个变量，这9个变量我们是从三个传感器中分别获得的。
-在readIMU中我们定义了结构体变量 imuData_s data做为返回值。
-通过给结构体中的变量赋予测量值来得到我们想要的数据，赋值过程如下（有部分代码省略）：
+这些测量值可能会有一些噪声，我们可以通过一些滤波方法来改善数据，下面是低通滤波的一个例子，详情请参考[这里](http://theccontinuum.com/2012/09/24/arduino-imu-pitch-roll-from-accelerometer/)。
 
- ```
-    acc.readAccel(&ax, &ay, &az); //read the accelerometer values and store them in variables  x,y,z
+```
+fXg = xg * alpha + fXg * (1.0 - alpha);
+fYg = yg * alpha + fYg * (1.0 - alpha);
+fZg = zg * alpha + fZg * (1.0 - alpha);
+```
 
-      X = ax/256.00; // used for angle calculations
-      Y = ay/256.00; // used for angle calculations
-      Z = az/256.00; // used for angle calculations
+## 陀螺仪(ITG3200)
 
-      data.ax = X;
-      data.ay = Y;
-      data.az = Z;
+陀螺仪是一种基于角动量理论来测量或者维持方向的设备。GY85使用InvenSense公司的ITG3200来测量方向，它可以感知三个方向的移动，传感器数据采用16位模数转换器，除此之外，它还集成了一个温度传感器。
 
+我们需要将采样值除以敏感范围因子(Sensitivity Scale Factor)来得到最终以°/s为单位的值，敏感范围因子可以在[数据手册](https://www.sparkfun.com/datasheets/Sensors/Gyro/PS-ITG-3200-00-01.4.pdf)中找到。
 
-      //GYRO
-      rollrad = atan(Y/sqrt(X*X+Z*Z));  // calculated angle in radians
-      pitchrad = atan(X/sqrt(Y*Y+Z*Z)); // calculated angle in radians
-      rolldeg = 180*(atan(Y/sqrt(X*X+Z*Z)))/PI; // calculated angle in degrees
-      pitchdeg = 180*(atan(X/sqrt(Y*Y+Z*Z)))/PI; // calculated angle in degrees
+				测量值(单位:°/s) = 采样值 / 敏感范围因子
 
-      // Code fragment for Magnetometer heading (yaw)
-      MagnetometerRaw raw = compass.ReadRawAxis();
-      MagnetometerScaled scaled = compass.ReadScaledAxis();
-      int MilliGauss_OnThe_XAxis = scaled.XAxis;// (or YAxis, or ZAxis)
-      float heading = atan2(scaled.YAxis, scaled.XAxis);
-      float declinationAngle = 0.0457;
-      heading += declinationAngle;
-      if(heading < 0)
-        heading += 2*PI;
-      if(heading > 2*PI)
-        heading -= 2*PI;
-      float headingDegrees = heading * 180/M_PI;
+敏感范围因子是一个常量，大小为14.375 LSB pro °/s，因此
 
-      // Code fragment for Gyroscope (roll, pitch, yaw)  
-      gyro.readGyro(&gx,&gy,&gz);
-      looptime = millis() - time;
-      gx_rate = (gx) / 14.375;
-      gy_rate = (gy) / 14.375;
-      gz_rate = (gz) / 14.375;
+			测量值(单位:°/s) = 采样值 / 敏感范围因子
 
-      data.gx = gx_rate;
-      data.gy = gy_rate;
-      data.gz = gz_rate;
+同样将上述公式应用于每个方向，最终结果应该在±2000°/s之间。
 
-      data.mx = scaled.XAxis;
-      data.my = scaled.YAxis;
-      data.mz = scaled.ZAxis;
+```
+xds = valX / 14.375;
+yds = valY / 14.375;
+zds = valZ / 14.375;
+```
 
-      data.roll = rollrad;
-      data.pitch = pitchrad;
-      data.uh = heading;
-```      
-最后再返回:
+如果我们将上述值乘以时间间隔的话，
 
- ```
-      return data;
- ```
+			角度 += 测量值(单位:°/s) × 时间间隔
+
+我们便可得到每个方向的角度：
+
+```
+Roll += valX * dtime * 0.001;
+Pitch += valY * dtime * 0.001;
+Yaw += valZ * dtime * -0.001;
+```
+
+我们直接从传感器获得的温度值将是十分巨大的一个值，我们可以使用一个常量将其转换为摄氏度。-13200代表35°，每280就是1°。
+
+				温度(单位:°C) = 35 + (采样值 + 13200) / 280
+
+## 电子罗盘(HMC5883L)
+
+电子罗盘主要用于测量磁性材料，比如磁铁，的磁化强度，以及测量某一点的磁场强度和方向。
+
+在GY85中使用的是Honeywell公司的HMC5883L，它是一个三轴的数码电子罗盘。该芯片被广泛用于数码指南针，用于检测与地磁北极的偏转角度。
+
+将采集到的数据乘以数字分辨率即可得到以高斯为单位的数据：
+
+```
+data[0] *= 0.92;
+data[1] *= 0.92;
+data[2] *= 0.92;
+```
+
+转化为弧度：
+
+```
+Yaw = atan2(Y, X);
+```
