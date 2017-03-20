@@ -2,6 +2,8 @@
 
 # 概述
 
+本驱动使用GPL协议，使用本驱动请遵守相关[协议](https://github.com/Saturn-robot/GY85_driver/blob/master/LICENSE)。
+
 这是一个针对惯性测量模组（IMU）的Arduino驱动代码，目前只支持GY85。惯性测量模组是一种用于测量和报告设备速度、方向和重力的电子设备，它能将加速度计和陀螺仪，甚至是磁场强度计等传感器的数据进行综合。GY85在国内是一个很常用的惯性测量模组，用途很广范，主要用于无人机、机器人等。我们主要将其用在轮式机器人上，用于提供机器人的速度和位姿等信息。
 
 # GY85简介
@@ -53,7 +55,7 @@ GY85所使用的加速度计ADXL345是一个模拟设备，它可以测量三个
 
 公式中测量范围和分辨率取决于芯片的配置。ADXL345支持的测量范围有±2g/±4g/±8g/±16g。一般分辨率可以设置为10或者13位。采样值就是指芯片直接采集到的数据。如果ADXL345使用的是默认设置的话，那么分辨率为10位精度，测量范围为±2g(因此公式中应使用4)，因此根据上述公式可得：
 
-			测量值(单位:G) = 采样值 × (4/2^10) = 采样值 × (1/256) = 采样值 × 0.0039
+				测量值(单位:G) = 采样值 × (4/2^10) = 采样值 × (1/256) = 采样值 × 0.0039
 
 必须对每个方向的数据都做进行上面的处理，最终的测量值的范围在±1之间。
 
@@ -81,7 +83,7 @@ fZg = zg * alpha + fZg * (1.0 - alpha);
 
 敏感范围因子是一个常量，大小为14.375 LSB pro °/s，因此
 
-			测量值(单位:°/s) = 采样值 / 敏感范围因子
+				测量值(单位:°/s) = 采样值 / 敏感范围因子
 
 同样将上述公式应用于每个方向，最终结果应该在±2000°/s之间。
 
@@ -93,7 +95,7 @@ zds = valZ / 14.375;
 
 如果我们将上述值乘以时间间隔的话，
 
-			角度 += 测量值(单位:°/s) × 时间间隔
+				角度 += 测量值(单位:°/s) × 时间间隔
 
 我们便可得到每个方向的角度：
 
@@ -149,13 +151,19 @@ Yaw in ° = Yaw * 180/PI;
 
 ## 电路连接
 
-下图是GY85与Arduino Mega 2560的电路连接图
+下图是GY85与Arduino Mega 2560的电路连接图，图片若加载不出来，请直接查看circuit目录下的图片。
 
-![wiring-mega]()
+![wiring-mega](https://github.com/Saturn-robot/GY85_driver/blob/master/circuit/wiring-mega2560.jpg)
 
 如果你使用的是其他版本的Arduino，请视情况更改。比如你使用的是Uno的话，只需将GY85的SDA和SCL分别改为A4和A5，即Arduino的I2C接口。不同版本的Arduino I2C接口请查阅Arduino官方网站:<https://www.arduino.cc/en/Reference/Wire>。
 
-待续...
+## 安装函数库
+
+运行本驱动之前请将lib下的三个函数库放到你的Arduino安装路径下的library目录中。
+
+## 获取数据
+
+打开串口监视器，输入`i`命令即可获得相应的数据。
 
 
 <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" /></a><br />本作品采用<a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">知识共享署名-非商业性使用-相同方式共享 4.0 国际许可协议</a>进行许可。
