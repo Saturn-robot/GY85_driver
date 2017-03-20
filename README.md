@@ -121,8 +121,41 @@ data[1] *= 0.92;
 data[2] *= 0.92;
 ```
 
-转化为弧度：
+**NOTE:** 关于分辨率等参数的详细信息，请参考其[数据手册](http://210.27.82.7/cache/7/03/cloudfront.net/6181d2fb87c03344fcb19a03acc68c69/HMC5883L-FDS.pdf)。
+转化为弧度(rad)：
 
 ```
 Yaw = atan2(Y, X);
 ```
+由于存在磁偏角，所以当值为负时，需要进行校正：
+
+```
+if(Yaw < 0)
+    Yaw += 2*PI;
+```
+当存在正磁偏角时，同样需要校正：
+
+```
+if(Yaw > 2*PI)
+    Yaw -= 2*PI;
+```
+最后，将结果转化为角度(°):
+
+```
+Yaw in ° = Yaw * 180/PI;
+```
+
+# 使用本驱动
+
+## 电路连接
+
+下图是GY85与Arduino Mega 2560的电路连接图
+
+![wiring-mega]()
+
+如果你使用的是其他版本的Arduino，请视情况更改。比如你使用的是Uno的话，只需将GY85的SDA和SCL分别改为A4和A5，即Arduino的I2C接口。不同版本的Arduino I2C接口请查阅Arduino官方网站:<https://www.arduino.cc/en/Reference/Wire>。
+
+待续...
+
+
+<a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" /></a><br />本作品采用<a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">知识共享署名-非商业性使用-相同方式共享 4.0 国际许可协议</a>进行许可。
