@@ -83,7 +83,7 @@ imuData readIMU()
   float accuratePitch = complementaryFilter(gyro_pitch, accel_pitch);
   float accurateYaw = complementaryFilter(gyro_yaw, mag_yaw);
 
-
+  // assign corresponding vales of data
   data.ax = ax;   data.gx = gx;   data.mx = scaled.XAxis;
   data.ay = ay;   data.gy = gy;   data.my = scaled.YAxis;
   data.az = az;   data.gz = gz;   data.mz = scaled.ZAxis;
