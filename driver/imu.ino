@@ -1,27 +1,16 @@
 #include <Wire.h>
 #include <ADXL345.h>  // ADXL345 Accelerometer Library
 #include <HMC5883L.h> // HMC5883L Magnetometer Library
-#include <ITG3200.h>
+#include <ITG3200.h>  // ITG3200 GyroGyroscope Library
 
 ADXL345 acc; //variable adxl is an instance of the ADXL345 library
 HMC5883L compass;
 ITG3200 gyro = ITG3200();
-
-float  gx,gy,gz;
-float  gx_rate, gy_rate, gz_rate;
-int ix, iy, iz;
-float anglegx=0.0, anglegy=0.0, anglegz=0.0;
-int ax,ay,az;
-int rawX, rawY, rawZ;
-float rollrad, pitchrad;
-float rolldeg, pitchdeg;
-int error = 0;
-float aoffsetX, aoffsetY, aoffsetZ;
-float goffsetX, goffsetY, goffsetZ;
-unsigned long time, looptime;
+const float GyroPercentage = 0.9;
 
 void initIMU()
 {
+  int error = 0;
   acc.powerOn();
   compass = HMC5883L();
   error = compass.SetScale(1.3); // Set the scale to +/- 1.3 Ga of the compass
@@ -32,58 +21,75 @@ void initIMU()
   error = compass.SetMeasurementMode(Measurement_Continuous); // Set the measurement mode to Continuous
   if(error != 0) // If there is an error, print it out.
   Serial.println(compass.GetErrorText(error));
-
+  delay(1000);
   gyro.init(ITG3200_ADDR_AD0_LOW);
+}
+
+float complementaryFilter(float gyro_angle, float accelorMag_angle)
+{
+  return GyroPercentage * gyro_angle + (1 - GyroPercentage) * accelorMag_angle;
 }
 
 imuData readIMU()
 {
   imuData_s data;
-  time = millis();
+  int raw_ax, raw_ay, raw_az;
+  float raw_gx, raw_gy, raw_gz;
+  float accel_roll = 0.0, accel_pitch = 0.0;
+  float gyro_roll = 0.0, gyro_pitch = 0.0, gyro_yaw = 0.0;
 
-  // ACCEL
-  acc.readAccel(&ax, &ay, &az); //read the accelerometer values and store them in variables  x,y,z
-  data.ax = ax * 0.0039;
-  data.ay = ay * 0.0039;
-  data.az = az * 0.0039;
+  unsigned long time = millis();
 
-  //GYRO
-  rollrad = atan(Y/sqrt(X*X+Z*Z));  // calculated angle in radians
-  pitchrad = atan(X/sqrt(Y*Y+Z*Z)); // calculated angle in radians
-  rolldeg = 180*(atan(Y/sqrt(X*X+Z*Z)))/PI; // calculated angle in degrees
-  pitchdeg = 180*(atan(X/sqrt(Y*Y+Z*Z)))/PI; // calculated angle in degrees
+  // code fragment for Accelerometer angles (roll and pitch)
+  acc.readAccel(&raw_ax, &raw_ay, &raw_az); //read the accelerometer values and store them in variables  x,y,z
+  // get values in unit G
+  float ax = raw_ax * 0.0039;
+  float ay = raw_ay * 0.0039;
+  float az = raw_az * 0.0039;
 
-  // Code fragment for Magnetometer heading (yaw)
+  // Code fragment for Magnetometer yaw
   MagnetometerRaw raw = compass.ReadRawAxis();
   MagnetometerScaled scaled = compass.ReadScaledAxis();
-  int MilliGauss_OnThe_XAxis = scaled.XAxis;// (or YAxis, or ZAxis)
-  float heading = atan2(scaled.YAxis, scaled.XAxis);
+  //int MilliGauss_OnThe_XAxis = scaled.XAxis;// (or YAxis, or ZAxis)
+  float mag_yaw = atan2(scaled.YAxis, scaled.XAxis);
   float declinationAngle = 0.0457;
-  heading += declinationAngle;
-  if(heading < 0)
-    heading += 2*PI;
-  if(heading > 2*PI)
-    heading -= 2*PI;
-  float headingDegrees = heading * 180/M_PI;
+  mag_yaw += declinationAngle;
+
+  if(mag_yaw < 0)
+    mag_yaw += 2*PI;
+  if(mag_yaw > 2*PI)
+    mag_yaw -= 2*PI;
 
   // Code fragment for Gyroscope (roll, pitch, yaw)
-  gyro.readGyro(&gx,&gy,&gz);
-  looptime = millis() - time;
-  gx_rate = (gx) / 14.375;
-  gy_rate = (gy) / 14.375;
-  gz_rate = (gz) / 14.375;
+  gyro.readGyro(&raw_gx,&raw_gy,&raw_gz);
 
-  data.gx = gx_rate;
-  data.gy = gy_rate;
-  data.gz = gz_rate;
+  // Get delta time
+  unsigned long looptime = millis() - time;
+  // get values of gyro
+  float gx = (raw_gx) / 14.375;
+  float gy = (raw_gy) / 14.375;
+  float gz = (raw_gz) / 14.375;
 
-  data.mx = scaled.XAxis;
-  data.my = scaled.YAxis;
-  data.mz = scaled.ZAxis;
+  // compute accel angles of x, y
+  accel_roll = atan(ay / sqrt(ax * ax + az * az));
+  accel_pitch = atan(ax / sqrt(ay * ay + az * az));
+  // compute gyro angles of x, y, z
+  gyro_roll += (gx * looptime);
+  gyro_pitch += (gy * looptime);
+  gyro_yaw += (gz * looptime);
 
-  data.roll = rollrad;
-  data.pitch = pitchrad;
-  data.uh = heading;
+  // use complementary filter to get accurate angles
+  float accurateRoll = complementaryFilter(gyro_roll, accel_roll);
+  float accuratePitch = complementaryFilter(gyro_pitch, accel_pitch);
+  float accurateYaw = complementaryFilter(gyro_yaw, mag_yaw);
+
+
+  data.ax = ax;   data.gx = gx;   data.mx = scaled.XAxis;
+  data.ay = ay;   data.gy = gy;   data.my = scaled.YAxis;
+  data.az = az;   data.gz = gz;   data.mz = scaled.ZAxis;
+  data.roll = accurateRoll;
+  data.pitch = accuratePitch;
+  data.uh = accurateYaw;
 
   return data;
 }
