@@ -80,9 +80,9 @@ Roll = atan2(yg, zg) * 180/PI;
 Pitch = atan2(-xg, sqrt(yg*yg + zg*zg)) * 180/PI;
 ```
 
-## 陀螺仪(ITG3200)
+## 陀螺仪(ITG3200/ITG3205)
 
-陀螺仪是一种基于角动量理论来测量或者维持方向的设备。GY85使用InvenSense公司的ITG3200来测量方向，它可以感知三个方向的移动，传感器数据采用16位模数转换器，除此之外，它还集成了一个温度传感器。
+陀螺仪是一种基于角动量理论来测量或者维持方向的设备。GY85使用InvenSense公司的ITG3200或者ITG3205来测量方向，它可以感知三个方向的移动，传感器数据采用16位模数转换器，除此之外，它还集成了一个温度传感器。
 
 我们需要将采样值除以敏感范围因子(Sensitivity Scale Factor)来得到最终以°/s为单位的值，敏感范围因子可以在[数据手册](https://www.sparkfun.com/datasheets/Sensors/Gyro/PS-ITG-3200-00-01.4.pdf)中找到。
 

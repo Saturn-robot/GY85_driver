@@ -21,6 +21,7 @@ typedef struct imuData_s
 
 void initIMU();
 imuData readIMU();
+float complementaryFilter(float gyro_angle, float accelorMag_angle);
 imuData imu_data;
 
 #endif

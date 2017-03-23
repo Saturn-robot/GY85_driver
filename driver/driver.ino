@@ -49,27 +49,27 @@ int runCommand() {
 			Serial.print(F(" "));
 			Serial.print(imu_data.ay);
 			Serial.print(F(" "));
-                        Serial.print(imu_data.az);
-                        Serial.print(F(" "));
-                        Serial.print(imu_data.gx);
-                        Serial.print(F(" "));
-                        Serial.print(imu_data.gy);
-                        Serial.print(F(" "));
-                        Serial.print(imu_data.gz);
-                        Serial.print(F(" "));
-                        Serial.print(imu_data.mx);
-                        Serial.print(F(" "));
-                        Serial.print(imu_data.my);
-                        Serial.print(F(" "));
-                        Serial.print(imu_data.mz);
-                        Serial.print(F(" "));
-                        Serial.print(imu_data.roll);
-                        Serial.print(F(" "));
-                        Serial.print(imu_data.pitch);
-                        Serial.print(F(" "));
-                        Serial.println(imu_data.uh);
-		             break;
-		             default:
+      Serial.print(imu_data.az);
+      Serial.print(F(" "));
+      Serial.print(imu_data.gx);
+      Serial.print(F(" "));
+      Serial.print(imu_data.gy);
+      Serial.print(F(" "));
+      Serial.print(imu_data.gz);
+      Serial.print(F(" "));
+      Serial.print(imu_data.mx);
+      Serial.print(F(" "));
+      Serial.print(imu_data.my);
+      Serial.print(F(" "));
+      Serial.print(imu_data.mz);
+      Serial.print(F(" "));
+      Serial.print(imu_data.roll);
+      Serial.print(F(" "));
+      Serial.print(imu_data.pitch);
+      Serial.print(F(" "));
+      Serial.println(imu_data.uh);
+		  break;
+		default:
 			Serial.println(F("Invalid Command"));
 			break;
 	}
