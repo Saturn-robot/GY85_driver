@@ -94,7 +94,8 @@ Pitch = atan2(-xg, sqrt(yg*yg + zg*zg)) * 180/PI;
 
 同样将上述公式应用于每个方向，最终结果应该在±2000°/s之间。
 
-```
+```s -s
+
 xds = valX / 14.375;
 yds = valY / 14.375;
 zds = valZ / 14.375;
